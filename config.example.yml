@@ -1,0 +1,3 @@
+google_drive:
+  root_folder_key: your-root-folder-key
+  api_key: your-google-drive-api-key
