@@ -14,6 +14,19 @@
 2. In same folder of the binary, create a config file. Then put your initial configuration there.
 3. Start the application on a terminal.
 
+# Configuration
+
+You need to make public some Google Drive folder (and your mp3 files you want to read).
+Also, you need to generate a Google Drive API Key to fetch initial data.
+
+| Configuration                | Description                   |
+|------------------------------|-------------------------------|
+| google_drive.root_folder_key | Your Google Drive Folder Key  |
+| google_drive.api_key         | Your Google Drive API Key     |
+| player.autoplay              | Set autoplay                  |
+| player.initial_volume        | Set initial volume (0 to 100) |
+
+
 # Commands
 
 | Key            | Description         |
