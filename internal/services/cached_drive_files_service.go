@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/jibaru/gobeats/m/internal/entities"
 	"os"
 )
@@ -13,23 +14,27 @@ func NewCachedDriveFilesService() *CachedDriveFilesService {
 	return &CachedDriveFilesService{}
 }
 
-func (serv *CachedDriveFilesService) Get() ([]entities.DriveFile, error) {
+func (serv *CachedDriveFilesService) Get() (entities.DriveFileList, error) {
 	jsonData, err := os.ReadFile("./storage/drive_files.json")
 	if err != nil {
 		return nil, err
 	}
 
-	var driveFiles []entities.DriveFile
+	var driveFiles entities.DriveFileList
 
 	err = json.Unmarshal(jsonData, &driveFiles)
 	if err != nil {
 		return nil, err
 	}
 
+	if len(driveFiles) == 0 {
+		return nil, errors.New("songs not found")
+	}
+
 	return driveFiles, nil
 }
 
-func (serv *CachedDriveFilesService) Set(driveFiles []entities.DriveFile) error {
+func (serv *CachedDriveFilesService) Set(driveFiles entities.DriveFileList) error {
 	jsonData, err := json.Marshal(driveFiles)
 	if err != nil {
 		return err
