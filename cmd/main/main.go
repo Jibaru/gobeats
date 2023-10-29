@@ -2,82 +2,87 @@ package main
 
 import (
 	"fmt"
-	"github.com/ebitengine/oto/v3"
+	"github.com/jibaru/gobeats/m/cmd/config"
 	"github.com/jibaru/gobeats/m/internal/entities"
 	"github.com/jibaru/gobeats/m/internal/services"
 	"github.com/jibaru/gobeats/m/internal/ui"
-	"github.com/spf13/viper"
+	"github.com/jibaru/gobeats/m/pkg/time"
 	"strconv"
 )
 
 func main() {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-
-	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("Error reading config file: %s\n", err)
+	cfg, err := config.NewAppConfig()
+	if err != nil {
+		fmt.Printf("Error reading cfg file: %s\n", err)
 		return
 	}
 
-	rootFolderKey := viper.GetString("google_drive.root_folder_key")
-	driveApiKey := viper.GetString("google_drive.api_key")
-
 	cachedDriveFilesService := services.NewCachedDriveFilesService()
 	getDriveFilesService := services.NewGetDriveFilesService(
-		rootFolderKey,
-		driveApiKey,
+		cfg.GoogleDriveRootFolderKey,
+		cfg.GoogleDriveDriveApiKey,
 	)
 
-	op := &oto.NewContextOptions{}
-	op.SampleRate = 44100
-	op.ChannelCount = 2
-	op.Format = oto.FormatSignedInt16LE
-	otoCtx, readyChan, err := oto.NewContext(op)
+	otoCtx, readyChan, err := config.NewOtoContext()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	<-readyChan
-	player := entities.NewDrivePlayer(otoCtx)
+
+	player, err := entities.NewDrivePlayer(otoCtx, cfg.InitialVolume)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	handlePlay := func(cmd *ui.CmdUserInterface) {
+		cmd.ChangePlayerStatus("Stopping song...")
+		err = player.Stop()
+		if err != nil {
+			cmd.ChangeStatus(err.Error())
+		}
+
+		cmd.ChangePlayerStatus("Loading song...")
+
+		err = player.DownloadAndPlay(
+			cmd.GetSelectedSong(),
+			func(duration int64, song entities.DriveFile) {
+				formattedDuration := time.FormatDurationInSeconds(duration)
+				cmd.ChangePlayerStatus("[" + formattedDuration + "] Playing " + song.Name)
+			},
+			func() {
+				cmd.ClearPlayerStatus()
+				if cfg.UseAutoPlay {
+					cmd.IncreaseSelectedSongIndex()
+				}
+			},
+		)
+		if err != nil {
+			cmd.ChangeStatus(err.Error())
+		}
+	}
 
 	cmd, err := ui.NewCmdUserInterface(
 		// on close
 		func(cmd *ui.CmdUserInterface) {
-			err = player.Close()
-			if err != nil {
-				cmd.ChangeStatus(err.Error())
-			}
+			cmd.ChangeStatus("Closing...")
 		},
 		// on enter pressed
-		func(cmd *ui.CmdUserInterface) {
-			err := player.Stop()
-			if err != nil {
-				cmd.ChangeStatus(err.Error())
-			}
-
-			selectedSong := cmd.GetSelectedSong()
-			cmd.ClearPlayerStatus()
-			cmd.ChangeStatus("Downloading " + selectedSong.Name)
-
-			err = player.DownloadAndPlay(selectedSong)
-			if err != nil {
-				cmd.ChangeStatus(err.Error())
-			} else {
-				cmd.ChangePlayerStatus("Playing " + selectedSong.Name)
-			}
-		},
+		handlePlay,
 		// on pause pressed
 		func(cmd *ui.CmdUserInterface) {
-			player.Pause()
-			selectedSong := cmd.GetSelectedSong()
-			cmd.ChangePlayerStatus("Paused " + selectedSong.Name)
+			if player.CurrentSong != nil {
+				player.Pause()
+				cmd.ChangePlayerStatus("Paused " + player.CurrentSong.Name)
+			}
 		},
 		// on resume pressed
 		func(cmd *ui.CmdUserInterface) {
-			player.Resume()
-			selectedSong := cmd.GetSelectedSong()
-			cmd.ChangePlayerStatus("Playing " + selectedSong.Name)
+			if player.CurrentSong != nil {
+				player.Resume()
+				cmd.ChangePlayerStatus("Playing " + player.CurrentSong.Name)
+			}
 		},
 		// on increase volume pressed
 		func(cmd *ui.CmdUserInterface) {
@@ -89,6 +94,8 @@ func main() {
 			player.DecreaseVolume()
 			cmd.ChangeStatus("Volume: " + strconv.Itoa(player.CurrentVolume))
 		},
+		// on increase songs index set
+		handlePlay,
 	)
 	if err != nil {
 		return
@@ -97,25 +104,30 @@ func main() {
 
 	cmd.ChangeStatus("Reading cached songs...")
 
-	driveFiles, err := cachedDriveFilesService.Get()
+	songs, err := cachedDriveFilesService.Get()
 	if err != nil {
 		cmd.ChangeStatus("Cached songs not found, fetching...")
 
-		driveFiles, err = getDriveFilesService.Do()
+		songs, err = getDriveFilesService.Do()
 		if err != nil {
 			return
 		}
 
 		cmd.ChangeStatus("Caching songs fetched, caching...")
 
-		err := cachedDriveFilesService.Set(driveFiles)
+		err = cachedDriveFilesService.Set(songs)
 		if err != nil {
 			return
 		}
 	}
 
-	cmd.SetSongList(driveFiles)
+	cmd.SetSongList(songs)
 	cmd.ChangeStatus("Ready to play!")
 
 	cmd.Loop()
+
+	err = player.Stop()
+	if err != nil {
+		fmt.Println(err)
+	}
 }
