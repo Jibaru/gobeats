@@ -4,20 +4,23 @@ import (
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 	"github.com/jibaru/gobeats/m/internal/entities"
+	"math/rand"
 )
 
 type CmdUserInterface struct {
-	driveFiles              []entities.DriveFile
+	driveFiles              entities.DriveFileList
 	keyPressedWidget        *widgets.Paragraph
 	songListWidget          *widgets.List
 	playerStatusWidget      *widgets.Paragraph
 	statusWidget            *widgets.Paragraph
+	helpWidget              *widgets.Paragraph
 	onClose                 func(cmd *CmdUserInterface)
 	onEnterPressed          func(cmd *CmdUserInterface)
 	onPausePressed          func(cmd *CmdUserInterface)
 	onResumePressed         func(cmd *CmdUserInterface)
 	onIncreaseVolumePressed func(cmd *CmdUserInterface)
 	onDecreaseVolumePressed func(cmd *CmdUserInterface)
+	onIncreaseSongsIndexSet func(cmd *CmdUserInterface)
 }
 
 func NewCmdUserInterface(
@@ -27,6 +30,7 @@ func NewCmdUserInterface(
 	onResumePressed func(cmd *CmdUserInterface),
 	onIncreaseVolumePressed func(cmd *CmdUserInterface),
 	onDecreaseVolumePressed func(cmd *CmdUserInterface),
+	onIncreaseSongsIndexSet func(cmd *CmdUserInterface),
 ) (*CmdUserInterface, error) {
 	if err := ui.Init(); err != nil {
 		return nil, err
@@ -39,6 +43,7 @@ func NewCmdUserInterface(
 		onResumePressed:         onResumePressed,
 		onIncreaseVolumePressed: onIncreaseVolumePressed,
 		onDecreaseVolumePressed: onDecreaseVolumePressed,
+		onIncreaseSongsIndexSet: onIncreaseSongsIndexSet,
 	}
 
 	cmd.songListWidget = widgets.NewList()
@@ -49,10 +54,23 @@ func NewCmdUserInterface(
 
 	cmd.keyPressedWidget = widgets.NewParagraph()
 	cmd.keyPressedWidget.Title = "Key"
-	cmd.keyPressedWidget.SetRect(100, 0, 110, 4)
+	cmd.keyPressedWidget.SetRect(100, 0, 115, 4)
+
+	cmd.helpWidget = widgets.NewParagraph()
+	cmd.helpWidget.Title = "Help"
+	cmd.helpWidget.SetRect(100, 4, 115, 23)
+	cmd.helpWidget.Text = "s: shuffle\n" +
+		"p: pause\n" +
+		"r: resume\n" +
+		"↑: scroll up\n" +
+		"↓: scroll down\n" +
+		"enter: select song\n" +
+		"+: inc. volume\n" +
+		"-: dec. volume\n" +
+		"q: exit"
 
 	cmd.playerStatusWidget = widgets.NewParagraph()
-	cmd.playerStatusWidget.Title = "Current Song"
+	cmd.playerStatusWidget.Title = "Player Status"
 	cmd.playerStatusWidget.SetRect(0, 15, 100, 15+4)
 
 	cmd.statusWidget = widgets.NewParagraph()
@@ -64,25 +82,38 @@ func NewCmdUserInterface(
 		cmd.playerStatusWidget,
 		cmd.statusWidget,
 		cmd.keyPressedWidget,
+		cmd.helpWidget,
 	)
 
 	return cmd, nil
 }
 
-func (cmd *CmdUserInterface) SetSongList(driveFiles []entities.DriveFile) {
-	formattedFiles := make([]string, len(driveFiles))
-	for i, file := range driveFiles {
+func (cmd *CmdUserInterface) SetSongList(songs entities.DriveFileList) {
+	cmd.driveFiles = songs
+	cmd.reloadSongsWidget()
+}
+
+func (cmd *CmdUserInterface) reloadSongsWidget() {
+	formattedFiles := make([]string, len(cmd.driveFiles))
+	for i, file := range cmd.driveFiles {
 		formattedFiles[i] = file.Name
 	}
 
 	cmd.songListWidget.Rows = formattedFiles
-	cmd.driveFiles = driveFiles
 	ui.Render(cmd.songListWidget)
 }
 
 func (cmd *CmdUserInterface) GetSelectedSong() entities.DriveFile {
 	selectedIndex := cmd.songListWidget.SelectedRow
 	return cmd.driveFiles[selectedIndex]
+}
+
+func (cmd *CmdUserInterface) IncreaseSelectedSongIndex() {
+	if cmd.songListWidget.SelectedRow+1 < len(cmd.driveFiles) {
+		cmd.songListWidget.SelectedRow = cmd.songListWidget.SelectedRow + 1
+		cmd.reloadSongsWidget()
+		cmd.onIncreaseSongsIndexSet(cmd)
+	}
 }
 
 func (cmd *CmdUserInterface) ChangeStatus(status string) {
@@ -140,6 +171,14 @@ func (cmd *CmdUserInterface) Loop() {
 			cmd.onIncreaseVolumePressed(cmd)
 		case "-":
 			cmd.onDecreaseVolumePressed(cmd)
+		case "s":
+			rand.Shuffle(
+				len(cmd.driveFiles),
+				func(i, j int) {
+					cmd.driveFiles[i], cmd.driveFiles[j] = cmd.driveFiles[j], cmd.driveFiles[i]
+				},
+			)
+			cmd.reloadSongsWidget()
 		}
 
 		if previousKey == "g" {
