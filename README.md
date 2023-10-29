@@ -11,8 +11,9 @@
 # Installation
 
 1. Download the binary for your os.
-2. In same folder of the binary, create a config file. Then put your initial configuration there.
-3. Start the application on a terminal.
+2. In same folder of the binary, create a `config.yml` file. Then put your initial configuration there.
+3. In same folder of the binary, create a folder called `storage`.
+4. Start the application on a terminal.
 
 # Configuration
 
