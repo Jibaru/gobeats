@@ -9,6 +9,8 @@ type DriveFile struct {
 	Extension string `json:"extension"`
 }
 
+type DriveFileList = []DriveFile
+
 func (d *DriveFile) Url() string {
 	return "https://docs.google.com/uc" + "?export=download&id=" + d.ID
 }
