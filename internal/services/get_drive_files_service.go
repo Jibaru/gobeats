@@ -31,11 +31,11 @@ func NewGetDriveFilesService(
 	}
 }
 
-func (serv *GetDriveFilesService) Do() ([]entities.DriveFile, error) {
+func (serv *GetDriveFilesService) Do() (entities.DriveFileList, error) {
 	return serv.fetchFilesInFolder(serv.rootDriveFolderKey)
 }
 
-func (serv *GetDriveFilesService) fetchFilesInFolder(folderID string) ([]entities.DriveFile, error) {
+func (serv *GetDriveFilesService) fetchFilesInFolder(folderID string) (entities.DriveFileList, error) {
 	url := getFilesUrl + "?q=%22" + folderID + "%22%20in%20parents&key=" + serv.driveApiKey + "&pageSize=500"
 
 	resp, err := http.Get(url)
@@ -45,7 +45,7 @@ func (serv *GetDriveFilesService) fetchFilesInFolder(folderID string) ([]entitie
 	defer resp.Body.Close()
 
 	var files struct {
-		Files []entities.DriveFile `json:"files"`
+		Files entities.DriveFileList `json:"files"`
 		Error struct {
 			Message string `json:"message"`
 		} `json:"error"`
@@ -61,10 +61,10 @@ func (serv *GetDriveFilesService) fetchFilesInFolder(folderID string) ([]entitie
 		return nil, errors.New("cannot fetch data")
 	}
 
-	var filesInFolder []entities.DriveFile
+	var filesInFolder entities.DriveFileList
 
 	for _, file := range files.Files {
-		if strings.Contains(file.MimeType, googleDriveAudioType) {
+		if strings.Contains(file.MimeType, googleDriveAudioType) && filepath.Ext(file.Name) == ".mp3" {
 			filesInFolder = append(
 				filesInFolder,
 				entities.DriveFile{
