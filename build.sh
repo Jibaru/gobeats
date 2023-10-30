@@ -10,6 +10,7 @@ PLATFORMS=("windows/386" "windows/amd64" "linux/386" "linux/amd64" "darwin/amd64
 # Clean and create the output directory
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
+touch "$OUTPUT_DIR/.gitkeep"
 
 # Iterate through platforms and compile the application
 for PLATFORM in "${PLATFORMS[@]}"; do
