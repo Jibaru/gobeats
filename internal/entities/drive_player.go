@@ -20,6 +20,7 @@ type DrivePlayer struct {
 	CurrentVolume int
 	isDownloading bool
 	isCanceled    bool
+	isPaused      bool
 }
 
 func NewDrivePlayer(
@@ -38,6 +39,7 @@ func NewDrivePlayer(
 		initialVolume,
 		false,
 		false,
+		true,
 	}, nil
 }
 
@@ -79,6 +81,7 @@ func (p *DrivePlayer) DownloadAndPlay(
 	p.player.SetVolume(p.VolumeAsOne())
 	p.player.Play()
 	p.UnCancel()
+	p.isPaused = false
 
 	var currentTime int64 = 0
 	go func() {
@@ -90,10 +93,12 @@ func (p *DrivePlayer) DownloadAndPlay(
 			}
 			p.mutex.Unlock()
 
-			if p.player.IsPlaying() {
-				currentTime++
-				onPlaying(currentTime, driveFile)
-				time.Sleep(1 * time.Second)
+			if !p.IsFinished() {
+				if !p.isPaused {
+					currentTime++
+					onPlaying(currentTime, driveFile)
+					time.Sleep(1 * time.Second)
+				}
 			} else {
 				onFinish()
 				return
@@ -111,12 +116,14 @@ func (p *DrivePlayer) VolumeAsOne() float64 {
 func (p *DrivePlayer) Pause() {
 	if p.player != nil && p.player.IsPlaying() {
 		p.player.Pause()
+		p.isPaused = true
 	}
 }
 
 func (p *DrivePlayer) Resume() {
 	if p.player != nil && !p.player.IsPlaying() {
 		p.player.Play()
+		p.isPaused = false
 	}
 }
 
@@ -147,7 +154,7 @@ func (p *DrivePlayer) Stop() error {
 }
 
 func (p *DrivePlayer) IsFinished() bool {
-	return (p.player != nil && !p.player.IsPlaying()) || p.player == nil
+	return (p.player != nil && !p.player.IsPlaying() && !p.isPaused) || p.player == nil
 }
 
 func (p *DrivePlayer) IncreaseVolume() {
