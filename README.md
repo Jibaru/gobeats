@@ -15,6 +15,12 @@
 3. In same folder of the binary, create a folder called `storage`.
 4. Start the application on a terminal.
 
+## Installation with golang
+
+```bash
+go install github.com/jibaru/gobeats/cmd/main@latest
+```
+
 # Configuration
 
 You need to make public some Google Drive folder (and your mp3 files you want to read).
