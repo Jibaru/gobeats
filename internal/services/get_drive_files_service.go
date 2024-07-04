@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jibaru/gobeats/m/internal/entities"
+	"github.com/jibaru/gobeats/internal/entities"
 	"net/http"
 	"path/filepath"
 	"strings"

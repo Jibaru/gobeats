@@ -3,7 +3,7 @@ package ui
 import (
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
-	"github.com/jibaru/gobeats/m/internal/entities"
+	"github.com/jibaru/gobeats/internal/entities"
 	"math/rand"
 )
 

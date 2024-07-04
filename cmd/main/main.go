@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/jibaru/gobeats/m/cmd/config"
-	"github.com/jibaru/gobeats/m/internal/entities"
-	"github.com/jibaru/gobeats/m/internal/services"
-	"github.com/jibaru/gobeats/m/internal/ui"
-	"github.com/jibaru/gobeats/m/pkg/time"
+	"github.com/jibaru/gobeats/cmd/config"
+	"github.com/jibaru/gobeats/internal/entities"
+	"github.com/jibaru/gobeats/internal/services"
+	"github.com/jibaru/gobeats/internal/ui"
+	"github.com/jibaru/gobeats/pkg/time"
 	"strconv"
 )
 

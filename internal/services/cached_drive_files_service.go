@@ -3,7 +3,7 @@ package services
 import (
 	"encoding/json"
 	"errors"
-	"github.com/jibaru/gobeats/m/internal/entities"
+	"github.com/jibaru/gobeats/internal/entities"
 	"os"
 )
 

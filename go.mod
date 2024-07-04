@@ -1,4 +1,4 @@
-module github.com/jibaru/gobeats/m
+module github.com/jibaru/gobeats
 
 go 1.21.3
 
