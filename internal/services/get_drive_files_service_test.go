@@ -7,8 +7,8 @@ import (
 )
 
 func TestGetDriveFilesService_Do(t *testing.T) {
-	rootFolderKey := "1cbPWVPp-xFhNV2s540QHn8GuZ_Bwy9zM"
-	driveApiKey := "AIzaSyBynS-g91QFAauy_0r1FN5hdQplNnCGsdM"
+	rootFolderKey := "put your root folder key here"
+	driveApiKey := "put your drive api key here"
 
 	service := NewGetDriveFilesService(
 		rootFolderKey,
